@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyria Real-Time Experience - Sistema Multi-Agente Ottimizzato</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .agent-card {
+            border-left: 4px solid;
+        }
+        .agent-ingestion { border-left-color: #10b981; }
+        .agent-context { border-left-color: #3b82f6; }
+        .agent-musical { border-left-color: #8b5cf6; }
+        .agent-feedback { border-left-color: #f59e0b; }
+        
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.875rem;
+        }
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .button-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .button-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #fff;
+        }
+        .button-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            border: 1px solid #334155;
+            font-family: 'Fira Code', monospace;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+        .status-ready { background-color: #22c55e; }
+        .status-working { background-color: #f59e0b; }
+        .status-error { background-color: #ef4444; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .metric-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .agent-pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .agent-step {
+            text-align: center;
+            flex: 1;
+            padding: 0.5rem;
+        }
+        
+        .agent-arrow {
+            color: #667eea;
+            font-size: 1.5rem;
+            margin: 0 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center my-8 text-white drop-shadow-lg">
+            Lyria Real-Time Experience
+            <span class="block text-xl font-medium text-blue-100 mt-2">Sistema Multi-Agente Ottimizzato</span>
+        </h1>
+
+        <!-- Controlli Principali -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Centro Controllo</h2>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-4">
+                    <button id="startButton" class="button button-primary">🚀 Avvia Sistema</button>
+                    <button id="stopButton" class="button button-danger" disabled>⏹️ Ferma Sistema</button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm font-medium text-gray-700">Intervallo (ms):</label>
+                    <input type="number" id="updateInterval" value="4000" min="2000" max="10000" step="500" 
+                           class="px-3 py-2 border border-gray-300 rounded-lg w-24 text-center">
+                </div>
+                <span id="overallStatus" class="text-lg font-semibold">
+                    <span class="status-indicator status-ready"></span> Sistema Pronto
+                </span>
+            </div>
+
+            <!-- Pipeline Agenti -->
+            <div class="agent-pipeline">
+                <div class="agent-step">
+                    <div class="text-sm font-medium text-white">📊 Dati Smartwatch</div>
+                    <div class="text-xs text-blue-100 mt-1">Input Streaming</div>
+                </div>
+                <div class="agent-arrow">→</div>
+                <div id="ingestionStatus" class="agent-step">
+                    <div class="text-sm font-medium text-white">🔄 Agente Ingestione</div>
+                    <div class="text-xs text-blue-100 mt-1">Elaborazione Dati</div>
+                </div>
+                <div class="agent-arrow">→</div>
+                <div id="contextStatus" class="agent-step">
+                    <div class="text-sm font-medium text-white">🧠 Agente Contesto</div>
+                    <div class="text-xs text-blue-100 mt-1">Analisi Situazionale</div>
+                </div>
+                <div class="agent-arrow">→</div>
+                <div id="musicalStatus" class="agent-step">
+                    <div class="text-sm font-medium text-white">🎵 Agente Musicale</div>
+                    <div class="text-xs text-blue-100 mt-1">Generazione Prompt</div>
+                </div>
+                <div class="agent-arrow">→</div>
+                <div id="feedbackStatus" class="agent-step">
+                    <div class="text-sm font-medium text-white">📈 Agente Feedback</div>
+                    <div class="text-xs text-blue-100 mt-1">Apprendimento</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Metriche Real-time -->
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">📊 Metriche Fisiologiche</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="metric-box">
+                        <div id="hrValue" class="metric-value">--</div>
+                        <div class="metric-label">Battiti/Min</div>
+                    </div>
+                    <div class="metric-box">
+                        <div id="hrZoneValue" class="metric-value">--</div>
+                        <div class="metric-label">Zona HR</div>
+                    </div>
+                    <div class="metric-box">
+                        <div id="cadenceValue" class="metric-value">--</div>
+                        <div class="metric-label">Cadenza</div>
+                    </div>
+                    <div class="metric-box">
+                        <div id="fatigueValue" class="metric-value">--</div>
+                        <div class="metric-label">Affaticamento</div>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <div class="text-sm font-medium text-blue-800">Mood Detected:</div>
+                    <div id="moodValue" class="text-lg font-semibold text-blue-900">--</div>
+                </div>
+            </div>
+
+            <!-- Dati Smartwatch -->
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">⌚ Dati Smartwatch</h3>
+                <pre id="smartwatchDisplay" class="h-48 overflow-y-auto"></pre>
+            </div>
+
+            <!-- Stato Sistema -->
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">⚙️ Stato Sistema</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium">Sessione (min):</span>
+                        <span id="sessionTime" class="text-sm font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium">Cicli Completati:</span>
+                        <span id="cycleCount" class="text-sm font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium">Efficienza Sistema:</span>
+                        <span id="efficiency" class="text-sm font-semibold">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agenti Output -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Agente Ingestione -->
+            <div class="card agent-card agent-ingestion">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">🔄 Agente Ingestione</h3>
+                <div class="mb-3">
+                    <h4 class="font-medium text-gray-700 mb-2">Sistema State Processato:</h4>
+                    <pre id="ingestionOutput" class="h-32 overflow-y-auto"></pre>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">Processo di Ragionamento:</h4>
+                    <pre id="ingestionReasoning" class="h-24 overflow-y-auto"></pre>
+                </div>
+            </div>
+
+            <!-- Agente Contesto -->
+            <div class="card agent-card agent-context">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">🧠 Agente Contesto</h3>
+                <div class="mb-3">
+                    <h4 class="font-medium text-gray-700 mb-2">Analisi Situazionale:</h4>
+                    <pre id="contextAnalysis" class="h-32 overflow-y-auto"></pre>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">Raccomandazioni:</h4>
+                    <pre id="contextRecommendations" class="h-24 overflow-y-auto"></pre>
+                </div>
+            </div>
+
+            <!-- Agente Musicale -->
+            <div class="card agent-card agent-musical">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">🎵 Agente Musicale</h3>
+                <div class="mb-3">
+                    <h4 class="font-medium text-gray-700 mb-2">Prompt Lyria Generato:</h4>
+                    <pre id="lyriaPrompt" class="h-32 overflow-y-auto"></pre>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">Logica Compositiva:</h4>
+                    <pre id="musicalReasoning" class="h-24 overflow-y-auto"></pre>
+                </div>
+            </div>
+
+            <!-- Agente Feedback -->
+            <div class="card agent-card agent-feedback">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">📈 Agente Feedback</h3>
+                <div class="mb-3">
+                    <h4 class="font-medium text-gray-700 mb-2">Pattern Identificati:</h4>
+                    <pre id="feedbackPatterns" class="h-32 overflow-y-auto"></pre>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">Adattamenti Suggeriti:</h4>
+                    <pre id="feedbackAdaptations" class="h-24 overflow-y-auto"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- MCP Completo -->
+        <div class="card">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">🗂️ Model Context Protocol (MCP) - Stato Completo</h3>
+            <pre id="mcpDisplay" class="h-96 overflow-y-auto"></pre>
+        </div>
+    </div>
+
+    <script>
+        // API Key per Gemini (simulata)
+        const apiKey = "";
+        
+        let mcp = {
+            context_schema_version: "2.0.0",
+            session_id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            performance_metrics: {
+                total_cycles: 0,
+                successful_cycles: 0,
+                avg_cycle_time: 0,
+                efficiency_score: 1.0
+            },
+            instructions: {
+                primary_goal: "Mantenere utente in Zona HR 3 con alto engagement musicale",
+                adaptive_strategy: "Regolare parametri musicali basandosi su feedback fisiologico e preferenze apprese",
+                style_preferences: ["Trip Hop", "Drum and Bass", "Funk", "Minimal Techno", "Ambient", "Lo-Fi Hip Hop"],
+                constraints: {
+                    hr_target_zone: [130, 150],
+                    max_bpm_change_per_cycle: 15,
+                    fatigue_threshold: 0.8,
+                    mood_adaptation_sensitivity: 0.7
+                }
+            },
+            agents: {
+                ingestion: {
+                    id: "agent_ingestion_v2",
+                    status: "ready",
+                    specialization: "Elaborazione e interpretazione dati fisiologici raw",
+                    performance: { success_rate: 1.0, avg_response_time: 0 },
+                    last_execution: null
+                },
+                context: {
+                    id: "agent_context_v2", 
+                    status: "ready",
+                    specialization: "Analisi situazionale e trend prediction",
+                    performance: { success_rate: 1.0, avg_response_time: 0 },
+                    last_execution: null
+                },
+                musical: {
+                    id: "agent_musical_v2",
+                    status: "ready", 
+                    specialization: "Generazione prompts musicali ottimizzati",
+                    performance: { success_rate: 1.0, avg_response_time: 0 },
+                    last_execution: null
+                },
+                feedback: {
+                    id: "agent_feedback_v2",
+                    status: "ready",
+                    specialization: "Apprendimento pattern e ottimizzazione continua",
+                    performance: { success_rate: 1.0, avg_response_time: 0 },
+                    last_execution: null
+                }
+            },
+            system_state: {
+                raw_data: { hr: 0, cadence: 0, motion: 0 },
+                processed_metrics: {
+                    heart_rate_bpm: 0,
+                    hr_zone: 0,
+                    cadence_spm: 0,
+                    user_fatigue_score: 0.0,
+                    session_minute: 0,
+                    current_mood: "neutral",
+                    trend_direction: "stable"
+                },
+                context_analysis: {
+                    workout_phase: "warmup",
+                    energy_level: "moderate", 
+                    adaptation_needed: false,
+                    risk_factors: [],
+                    opportunities: []
+                }
+            },
+            memory: {
+                user_profile: {
+                    preferred_bpm_range: [100, 140],
+                    instrument_preferences: {
+                        bass: 0.9, drums: 0.8, keys: 0.7, 
+                        pad: 0.6, synth: 0.75, vocals: 0.4
+                    },
+                    style_affinity: {
+                        "Trip Hop": 0.8, "Drum and Bass": 0.7,
+                        "Funk": 0.9, "Minimal Techno": 0.6,
+                        "Ambient": 0.5, "Lo-Fi Hip Hop": 0.8
+                    }
+                },
+                session_history: [],
+                learned_patterns: {
+                    hr_response_to_bpm: {},
+                    fatigue_indicators: [],
+                    effective_transitions: []
+                }
+            },
+            lyria_output: {
+                current_prompt: {
+                    weightedPrompts: ["ambient startup:1.0"],
+                    config: {
+                        temperature: 0.8, top_k: 40, guidance: 3.0,
+                        bpm: "Auto", scale: "SCALE_UNSPECIFIED",
+                        density: 0.3, brightness: 0.5, seed: "Auto",
+                        mute_bass: false, mute_drums: false, only_bass_and_drums: false
+                    }
+                },
+                generation_history: [],
+                effectiveness_scores: []
+            },
+            feedback_loop: {
+                pattern_detection: { identified_patterns: [], confidence_scores: [] },
+                adaptation_suggestions: [],
+                learning_insights: []
+            }
+        };
+
+        let simulationInterval;
+        let sessionCounter = 0;
+        let cycleCounter = 0;
+        let lastHR = 80;
+        let lastCadence = 0;
+
+        // DOM Elements
+        const elements = {
+            startButton: document.getElementById('startButton'),
+            stopButton: document.getElementById('stopButton'),
+            updateInterval: document.getElementById('updateInterval'),
+            overallStatus: document.getElementById('overallStatus'),
+            
+            // Metrics
+            hrValue: document.getElementById('hrValue'),
+            hrZoneValue: document.getElementById('hrZoneValue'),
+            cadenceValue: document.getElementById('cadenceValue'),
+            fatigueValue: document.getElementById('fatigueValue'),
+            moodValue: document.getElementById('moodValue'),
+            sessionTime: document.getElementById('sessionTime'),
+            cycleCount: document.getElementById('cycleCount'),
+            efficiency: document.getElementById('efficiency'),
+            
+            // Displays
+            smartwatchDisplay: document.getElementById('smartwatchDisplay'),
+            mcpDisplay: document.getElementById('mcpDisplay'),
+            
+            // Agent outputs
+            ingestionOutput: document.getElementById('ingestionOutput'),
+            ingestionReasoning: document.getElementById('ingestionReasoning'),
+            contextAnalysis: document.getElementById('contextAnalysis'),
+            contextRecommendations: document.getElementById('contextRecommendations'),
+            lyriaPrompt: document.getElementById('lyriaPrompt'),
+            musicalReasoning: document.getElementById('musicalReasoning'),
+            feedbackPatterns: document.getElementById('feedbackPatterns'),
+            feedbackAdaptations: document.getElementById('feedbackAdaptations')
+        };
+
+        function updateStatus(status, message) {
+            elements.overallStatus.innerHTML = `<span class="status-indicator status-${status}"></span> ${message}`;
+        }
+
+        function simulateSmartwatchData() {
+            sessionCounter++;
+            mcp.system_state.processed_metrics.session_minute = Math.floor(sessionCounter / 15); // Approx 4 seconds per minute
+            
+            // Simulate realistic HR progression
+            const hrChange = (Math.random() - 0.5) * 8;
+            lastHR = Math.max(65, Math.min(185, lastHR + hrChange));
+            
+            let cadence = 0;
+            if (lastHR > 100) {
+                const cadenceChange = (Math.random() - 0.5) * 6;
+                lastCadence = Math.max(80, Math.min(180, lastCadence + cadenceChange));
+                cadence = Math.round(lastCadence);
+            } else {
+                lastCadence = Math.max(0, lastCadence - 5);
+                cadence = Math.round(lastCadence);
+            }
+
+            mcp.system_state.raw_data = {
+                hr: Math.round(lastHR),
+                cadence: cadence,
+                motion: +(Math.random() * 0.8 + 0.2).toFixed(2)
+            };
+            
+            elements.smartwatchDisplay.textContent = JSON.stringify(mcp.system_state.raw_data, null, 2);
+        }
+
+        // Simulated LLM Call with more realistic delays
+        async function simulateLLMCall(agentName, prompt, delay = 800) {
+            await new Promise(resolve => setTimeout(resolve, delay + Math.random() * 400));
+            
+            // More sophisticated simulation based on agent type
+            switch(agentName) {
+                case 'ingestion':
+                    return simulateIngestionResponse();
+                case 'context':
+                    return simulateContextResponse();
+                case 'musical':
+                    return simulateMusicalResponse();
+                case 'feedback':
+                    return simulateFeedbackResponse();
+                default:
+                    throw new Error(`Unknown agent: ${agentName}`);
+            }
+        }
+
+        function simulateIngestionResponse() {
+            const rawData = mcp.system_state.raw_data;
+            const hr = rawData.hr;
+            
+            // Calculate HR Zone (simplified)
+            let hrZone = 1;
+            if (hr > 120) hrZone = 2;
+            if (hr > 130) hrZone = 3;
+            if (hr > 150) hrZone = 4;
+            if (hr > 170) hrZone = 5;
+            
+            // Calculate fatigue score
+            const sessionMin = mcp.system_state.processed_metrics.session_minute;
+            const fatigueScore = Math.min(1.0, (sessionMin * 0.05) + (hrZone > 3 ? 0.1 : 0));
+            
+            // Mood detection
+            const moods = ['energetic', 'focused', 'relaxed', 'fatigued', 'motivated'];
+            const mood = hr > 140 ? (fatigueScore > 0.6 ? 'fatigued' : 'energetic') : 
+                        hr > 120 ? 'focused' : 'relaxed';
+            
+            return {
+                system_state: {
+                    heart_rate_bpm: hr,
+                    hr_zone: hrZone,
+                    cadence_spm: rawData.cadence,
+                    user_fatigue_score: +fatigueScore.toFixed(2),
+                    session_minute: sessionMin,
+                    current_mood: mood,
+                    trend_direction: hr > lastHR + 5 ? 'increasing' : hr < lastHR - 5 ? 'decreasing' : 'stable'
+                },
+                reasoning: `HR analizzata: ${hr} bpm → Zona ${hrZone}. Cadenza: ${rawData.cadence} spm. Fatica stimata: ${(fatigueScore*100).toFixed(0)}%. Trend: ${hr > lastHR ? 'crescente' : 'stabile'}. Mood rilevato: ${mood} basato su intensità e durata sessione.`
+            };
+        }
+
+        function simulateContextResponse() {
+            const metrics = mcp.system_state.processed_metrics;
+            const sessionMin = metrics.session_minute;
+            
+            // Determine workout phase
+            let phase = 'warmup';
+            if (sessionMin > 5 && sessionMin < 25) phase = 'main';
+            else if (sessionMin >= 25) phase = 'cooldown';
+            
+            // Energy level assessment
+            const energyLevel = metrics.hr_zone > 3 ? 'high' : 
+                               metrics.hr_zone > 2 ? 'moderate' : 'low';
+            
+            // Risk and opportunity assessment
+            const risks = [];
+            const opportunities = [];
+            
+            if (metrics.user_fatigue_score > 0.7) risks.push('high_fatigue');
+            if (metrics.hr_zone > 4) risks.push('overexertion');
+            if (metrics.hr_zone < 2 && phase === 'main') opportunities.push('intensity_boost');
+            if (metrics.current_mood === 'energetic') opportunities.push('complexity_increase');
+            
+            return {
+                context_analysis: {
+                    workout_phase: phase,
+                    energy_level: energyLevel,
+                    adaptation_needed: risks.length > 0,
+                    risk_factors: risks,
+                    opportunities: opportunities
+                },
+                recommendations: [
+                    `Fase workout: ${phase}`,
+                    `Livello energia: ${energyLevel}`,
+                    risks.length > 0 ? `⚠️ Rischi: ${risks.join(', ')}` : '✅ Nessun rischio rilevato',
+                    opportunities.length > 0 ? `🎯 Opportunità: ${opportunities.join(', ')}` : 'Mantenere stato attuale'
+                ],
+                reasoning: `Analisi situazionale: utente in fase ${phase} con energia ${energyLevel}. HR zona ${metrics.hr_zone}, fatica ${(metrics.user_fatigue_score*100).toFixed(0)}%. ${risks.length} rischi e ${opportunities.length} opportunità identificate.`
+            };
+        }
+
+        function simulateMusicalResponse() {
+            const metrics = mcp.system_state.processed_metrics;
+            const context = mcp.system_state.context_analysis;
+            
+            // Dynamic BPM calculation
+            let targetBPM = 120;
+            if (metrics.hr_zone < 3) targetBPM = Math.min(140, metrics.heart_rate_bpm * 0.8);
+            else if (metrics.hr_zone > 3) targetBPM = Math.max(100, metrics.heart_rate_bpm * 0.7);
+            else targetBPM = metrics.heart_rate_bpm * 0.75;
+            
+            // Style selection based on context
+            const styles = mcp.instructions.style_preferences;
+            let selectedStyle = 'Ambient';
+            
+            if (context.workout_phase === 'warmup') selectedStyle = 'Ambient';
+            else if (context.workout_phase === 'main') {
+                selectedStyle = metrics.hr_zone > 3 ? 'Drum and Bass' : 'Trip Hop';
+            } else selectedStyle = 'Lo-Fi Hip Hop';
+            
+            // Instrument adjustments
+            const config = {
+                temperature: 0.8,
+                top_k: 40,
+                guidance: 3.0,
+                bpm: Math.round(targetBPM).toString(),
+                scale: "MINOR_PENTATONIC",
+                density: Math.min(0.8, 0.3 + (metrics.hr_zone * 0.1)),
+                brightness: Math.max(0.2, 0.7 - (metrics.user_fatigue_score * 0.3)),
+                seed: "Auto",
+                mute_bass: metrics.user_fatigue_score > 0.8,
+                mute_drums: context.risk_factors.includes('overexertion'),
+                only_bass_and_drums: context.opportunities.includes('intensity_boost')
+            };
+            
+            const prompts = [
+                `${selectedStyle.toLowerCase()} workout:0.8`,
+                `hr zone ${metrics.hr_zone} music:0.6`,
+                `${metrics.current_mood} energy:0.7`
+            ];
+            
+            return {
+                lyria_prompt: {
+                    weightedPrompts: prompts,
+                    config: config
+                },
+                reasoning: `Generato prompt per ${selectedStyle} @ ${Math.round(targetBP
